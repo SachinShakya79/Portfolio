@@ -1093,8 +1093,8 @@
 
         <div class="hero-media about-media">
           <div class="hero-card">
-            <video id="aboutVideo" src="assets/ads.mp4" poster="assets/image.png" autoplay muted loop playsinline controls aria-label="About Shahara Metal Concern"></video>
-            <button class="about-sound-toggle" id="aboutSoundToggle" type="button" aria-controls="aboutVideo" aria-pressed="false">Enable sound</button>
+            <video id="aboutVideo" src="assets/ads.mp4" poster="assets/image.png" loop playsinline controls aria-label="About Shahara Metal Concern"></video>
+            <button class="about-sound-toggle" id="aboutSoundToggle" type="button" aria-controls="aboutVideo" aria-pressed="true">Mute sound</button>
           </div>
         </div>
       </div>
@@ -1676,10 +1676,29 @@
     const aboutVideo = document.getElementById("aboutVideo");
     const aboutSoundToggle = document.getElementById("aboutSoundToggle");
     let aboutVideoInView = false;
+    let aboutSoundEnabled = true;
+
+    function updateAboutSoundControl() {
+      aboutVideo.muted = !aboutSoundEnabled;
+      aboutVideo.volume = 1;
+      aboutSoundToggle.setAttribute("aria-pressed", String(aboutSoundEnabled));
+      aboutSoundToggle.textContent = aboutSoundEnabled ? "Mute sound" : "Enable sound";
+    }
 
     function updateAboutVideoPlayback() {
       if (aboutVideoInView && document.visibilityState === "visible") {
         aboutVideo.play().catch(error => {
+          if (error.name === "NotAllowedError" && aboutSoundEnabled) {
+            aboutSoundEnabled = false;
+            updateAboutSoundControl();
+            aboutVideo.play().catch(fallbackError => {
+              if (fallbackError.name !== "AbortError") {
+                console.warn("Unable to autoplay the muted About video.", fallbackError);
+              }
+            });
+            return;
+          }
+
           if (error.name !== "AbortError") {
             console.warn("Unable to autoplay the About video.", error);
           }
@@ -1708,12 +1727,14 @@
 
     document.addEventListener("visibilitychange", updateAboutVideoPlayback);
 
+    updateAboutSoundControl();
+
     aboutSoundToggle.addEventListener("click", () => {
-      const soundEnabled = aboutVideo.muted;
-      aboutVideo.muted = !soundEnabled;
-      aboutVideo.volume = 1;
-      aboutSoundToggle.setAttribute("aria-pressed", String(soundEnabled));
-      aboutSoundToggle.textContent = soundEnabled ? "Mute sound" : "Enable sound";
+      aboutSoundEnabled = !aboutSoundEnabled;
+      updateAboutSoundControl();
+      if (aboutVideoInView && document.visibilityState === "visible") {
+        updateAboutVideoPlayback();
+      }
     });
 
     /* Contact form */
