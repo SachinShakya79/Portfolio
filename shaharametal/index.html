@@ -371,6 +371,26 @@
       aspect-ratio: 4 / 3;
     }
 
+    .about-sound-toggle {
+      position: absolute;
+      right: 18px;
+      bottom: 18px;
+      z-index: 1;
+      padding: 9px 13px;
+      border: 1px solid rgba(255,255,255,.35);
+      border-radius: 999px;
+      background: rgba(21,27,31,.88);
+      color: white;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .about-sound-toggle:hover,
+    .about-sound-toggle:focus-visible {
+      background: var(--brand);
+    }
+
     .about-copy {
       color: #5e5b54;
       font-size: 17px;
@@ -1073,7 +1093,8 @@
 
         <div class="hero-media about-media">
           <div class="hero-card">
-            <video src="assets/ads.mp4" poster="assets/image.png" autoplay muted loop playsinline controls aria-label="About Shahara Metal Concern"></video>
+            <video id="aboutVideo" src="assets/ads.mp4" poster="assets/image.png" autoplay muted loop playsinline controls aria-label="About Shahara Metal Concern"></video>
+            <button class="about-sound-toggle" id="aboutSoundToggle" type="button" aria-controls="aboutVideo" aria-pressed="false">Enable sound</button>
           </div>
         </div>
       </div>
@@ -1650,6 +1671,18 @@
     });
 
     window.matchMedia("(min-width: 901px)").addEventListener("change", closeMobileNav);
+
+    /* Let visitors enable video sound with a direct interaction. */
+    const aboutVideo = document.getElementById("aboutVideo");
+    const aboutSoundToggle = document.getElementById("aboutSoundToggle");
+
+    aboutSoundToggle.addEventListener("click", () => {
+      const soundEnabled = aboutVideo.muted;
+      aboutVideo.muted = !soundEnabled;
+      aboutVideo.volume = 1;
+      aboutSoundToggle.setAttribute("aria-pressed", String(soundEnabled));
+      aboutSoundToggle.textContent = soundEnabled ? "Mute sound" : "Enable sound";
+    });
 
     /* Contact form */
     document.getElementById("contactForm").addEventListener("submit", event => {
