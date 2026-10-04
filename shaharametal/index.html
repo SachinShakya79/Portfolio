@@ -163,6 +163,7 @@
       border-radius: 10px;
       padding: 8px 10px;
       cursor: pointer;
+      touch-action: manipulation;
     }
 
     .mobile-nav {
@@ -1002,7 +1003,7 @@
 
       <a class="nav-button" href="tel:+9779841468317">Call 9841-468317</a>
 
-      <button class="menu-button" id="menuButton" aria-label="Open menu">☰</button>
+      <button class="menu-button" id="menuButton" type="button" aria-label="Open menu" aria-controls="mobileNav" aria-expanded="false">☰</button>
     </div>
 
     <div class="container mobile-nav" id="mobileNav">
@@ -1280,6 +1281,43 @@
   </div>
 
   <script>
+    /* Mobile navigation */
+    const menuButton = document.getElementById("menuButton");
+    const mobileNav = document.getElementById("mobileNav");
+
+    function closeMobileNav() {
+      mobileNav.classList.remove("open");
+      menuButton.textContent = "☰";
+      menuButton.setAttribute("aria-expanded", "false");
+      menuButton.setAttribute("aria-label", "Open menu");
+    }
+
+    menuButton.addEventListener("click", () => {
+      const isOpen = mobileNav.classList.toggle("open");
+      menuButton.textContent = isOpen ? "×" : "☰";
+      menuButton.setAttribute("aria-expanded", String(isOpen));
+      menuButton.setAttribute("aria-label", isOpen ? "Close menu" : "Open menu");
+    });
+
+    mobileNav.querySelectorAll("a").forEach(link => {
+      link.addEventListener("click", closeMobileNav);
+    });
+
+    document.addEventListener("pointerdown", event => {
+      if (!mobileNav.classList.contains("open")) return;
+      if (mobileNav.contains(event.target) || menuButton.contains(event.target)) return;
+      closeMobileNav();
+    });
+
+    document.addEventListener("keydown", event => {
+      if (event.key === "Escape" && mobileNav.classList.contains("open")) {
+        closeMobileNav();
+        menuButton.focus();
+      }
+    });
+
+    window.matchMedia("(min-width: 901px)").addEventListener("change", closeMobileNav);
+
     /* =========================================================
        EASY CONTENT EDITING
        =========================================================
@@ -1634,43 +1672,6 @@
     }
 
     setupRevealAnimations();
-
-    /* Mobile navigation */
-    const menuButton = document.getElementById("menuButton");
-    const mobileNav = document.getElementById("mobileNav");
-
-    function closeMobileNav() {
-      mobileNav.classList.remove("open");
-      menuButton.setAttribute("aria-expanded", "false");
-      menuButton.setAttribute("aria-label", "Open menu");
-    }
-
-    menuButton.addEventListener("click", () => {
-      const isOpen = mobileNav.classList.toggle("open");
-      menuButton.setAttribute("aria-expanded", String(isOpen));
-      menuButton.setAttribute("aria-label", isOpen ? "Close menu" : "Open menu");
-    });
-
-    mobileNav.querySelectorAll("a").forEach(link => {
-      link.addEventListener("click", closeMobileNav);
-    });
-
-    document.addEventListener("pointerdown", event => {
-      if (!mobileNav.classList.contains("open")) return;
-      if (mobileNav.contains(event.target) || menuButton.contains(event.target)) return;
-      closeMobileNav();
-    });
-
-    window.addEventListener("scroll", closeMobileNav, { passive: true });
-
-    document.addEventListener("keydown", event => {
-      if (event.key === "Escape" && mobileNav.classList.contains("open")) {
-        closeMobileNav();
-        menuButton.focus();
-      }
-    });
-
-    window.matchMedia("(min-width: 901px)").addEventListener("change", closeMobileNav);
 
     /* Let visitors enable video sound with a direct interaction. */
     const aboutVideo = document.getElementById("aboutVideo");
