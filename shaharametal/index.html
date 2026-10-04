@@ -1444,8 +1444,9 @@
         const video = document.createElement("video");
         video.src = item.src;
         video.controls = true;
-        video.autoplay = true;
         video.playsInline = true;
+        video.muted = false;
+        video.volume = 1;
         lightboxContent.appendChild(video);
       } else {
         const image = document.createElement("img");
