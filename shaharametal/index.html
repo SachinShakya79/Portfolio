@@ -1093,7 +1093,7 @@
 
         <div class="hero-media about-media">
           <div class="hero-card">
-            <video id="aboutVideo" src="assets/ads.mp4" poster="assets/image.png" loop playsinline controls aria-label="About Shahara Metal Concern"></video>
+            <video id="aboutVideo" src="assets/ads.mp4" poster="assets/image.png" playsinline controls aria-label="About Shahara Metal Concern"></video>
             <button class="about-sound-toggle" id="aboutSoundToggle" type="button" aria-controls="aboutVideo" aria-pressed="true">Mute sound</button>
           </div>
         </div>
@@ -1677,6 +1677,7 @@
     const aboutSoundToggle = document.getElementById("aboutSoundToggle");
     let aboutVideoInView = false;
     let aboutSoundEnabled = true;
+    let aboutFirstPlaythroughComplete = false;
 
     function updateAboutSoundControl() {
       aboutVideo.muted = !aboutSoundEnabled;
@@ -1728,6 +1729,16 @@
     document.addEventListener("visibilitychange", updateAboutVideoPlayback);
 
     updateAboutSoundControl();
+
+    aboutVideo.addEventListener("ended", () => {
+      if (aboutFirstPlaythroughComplete) return;
+
+      aboutFirstPlaythroughComplete = true;
+      aboutSoundEnabled = false;
+      aboutVideo.loop = true;
+      updateAboutSoundControl();
+      updateAboutVideoPlayback();
+    });
 
     aboutSoundToggle.addEventListener("click", () => {
       aboutSoundEnabled = !aboutSoundEnabled;
