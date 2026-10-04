@@ -1239,6 +1239,7 @@
 
        IMAGE:
        {
+         order: 1,
          type: "image",
          src: "assets/my-new-photo.jpg",
          title: "My New Trophy",
@@ -1247,6 +1248,7 @@
 
        VIDEO:
        {
+         order: 2,
          type: "video",
          src: "assets/my-video.mp4",
          title: "Making a Trophy",
@@ -1259,6 +1261,9 @@
        Put your new files inside the "assets" folder.
        Then add one object below.
 
+       Set a unique order number on each item to control its position.
+       Lower numbers appear first; change the numbers to rearrange items.
+
        IMPORTANT:
        Keep filenames simple:
        trophy-01.jpg
@@ -1268,100 +1273,116 @@
 
     const MEDIA = [
       {
+        order: 1,
         type: "video",
-        src: "assets/videoplayback.mp4",
+        src: "assets/ads.mp4",
         title: "About Us",
         category: "videos"
       },
       {
+        order: 2,
+        type: "video",
+        src: "assets/videoplayback.mp4",
+        title: "VideoPlayback1",
+        category: "videos"
+      },
+      {
+        order: 3,
         type: "image",
         src: "assets/newvisitingcard.png",
         title: "Visiting Card",
         category: "awards"
       },
       {
+        order: 4,
         type: "image",
         src: "assets/award.jpg",
         title: "Custom Award",
         category: "awards"
       },
       {
+        order: 5,
         type: "image",
         src: "assets/shield.jpg",
         title: "Recognition Shield",
         category: "awards"
       },
       {
+        order: 6,
         type: "image",
         src: "assets/trophies.jpg",
         title: "Custom Trophies",
         category: "awards"
       },
       {
+        order: 7,
         type: "image",
         src: "assets/token of appreciation.jpg",
         title: "Token of Appreciation",
         category: "awards"
       },
       {
+        order: 8,
         type: "image",
         src: "assets/token of love.png",
         title: "Token of Love",
         category: "awards"
       },
       {
+        order: 9,
         type: "image",
         src: "assets/tokenoflove.png",
         title: "Love Token",
         category: "awards"
       },
       {
+        order: 10,
         type: "image",
         src: "assets/token of love 2.png",
         title: "Presentation Piece",
         category: "awards"
       },
       {
+        order: 11,
         type: "image",
         src: "assets/name plates.jpeg",
         title: "Custom Name Plates",
         category: "plates"
       },
       {
+        order: 12,
         type: "image",
         src: "assets/Invitation.jpg",
         title: "Invitation Card",
         category: "plates"
       },
       {
+        order: 13,
         type: "image",
         src: "assets/frame token of love 2.png",
         title: "Framed Presentation Piece",
         category: "frames"
       },
       {
+        order: 14,
         type: "image",
         src: "assets/frame token of love1.png",
         title: "Detailed Framed Piece",
         category: "frames"
       },
       {
+        order: 15,
         type: "image",
         src: "assets/schoolBelt.jpg",
         title: "School Belt",
         category: "accessories"
       },
       {
+        order: 16,
         type: "image",
         src: "assets/school belt 2.png",
         title: "Custom School Belt",
         category: "accessories"
-      },
-      {
-        type: "video",
-        src: "assets/ads.mp4",
-        title: "About Us",
-        category: "videos"
       }
     ];
 
@@ -1373,9 +1394,10 @@
     const lightbox = document.getElementById("lightbox");
     const lightboxContent = document.getElementById("lightboxContent");
     const lightboxTitle = document.getElementById("lightboxTitle");
+    const orderedMedia = [...MEDIA].sort((first, second) => first.order - second.order);
 
     function renderMedia(filter = "all") {
-      const items = MEDIA.filter(item =>
+      const items = orderedMedia.filter(item =>
         filter === "all" || item.category === filter
       );
 
