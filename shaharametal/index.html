@@ -1677,33 +1677,40 @@
     const aboutSoundToggle = document.getElementById("aboutSoundToggle");
     let aboutVideoInView = false;
     let aboutSoundEnabled = true;
+    let aboutSoundChangedByVisitor = false;
     let aboutFirstPlaythroughComplete = false;
 
     function updateAboutSoundControl() {
       aboutVideo.muted = !aboutSoundEnabled;
       aboutVideo.volume = 1;
       aboutSoundToggle.setAttribute("aria-pressed", String(aboutSoundEnabled));
-      aboutSoundToggle.textContent = aboutSoundEnabled ? "Mute sound" : "Enable sound";
+      aboutSoundToggle.textContent = aboutSoundEnabled
+        ? "Mute sound"
+        : aboutFirstPlaythroughComplete ? "Enable sound" : "Play with sound";
+    }
+
+    function playAboutVideo() {
+      aboutVideo.play().catch(error => {
+        if (error.name === "NotAllowedError" && aboutSoundEnabled && !aboutSoundChangedByVisitor) {
+          aboutSoundEnabled = false;
+          updateAboutSoundControl();
+          aboutVideo.play().catch(fallbackError => {
+            if (fallbackError.name !== "AbortError") {
+              console.warn("Unable to autoplay the muted About video.", fallbackError);
+            }
+          });
+          return;
+        }
+
+        if (error.name !== "AbortError") {
+          console.warn("Unable to play the About video.", error);
+        }
+      });
     }
 
     function updateAboutVideoPlayback() {
       if (aboutVideoInView && document.visibilityState === "visible") {
-        aboutVideo.play().catch(error => {
-          if (error.name === "NotAllowedError" && aboutSoundEnabled) {
-            aboutSoundEnabled = false;
-            updateAboutSoundControl();
-            aboutVideo.play().catch(fallbackError => {
-              if (fallbackError.name !== "AbortError") {
-                console.warn("Unable to autoplay the muted About video.", fallbackError);
-              }
-            });
-            return;
-          }
-
-          if (error.name !== "AbortError") {
-            console.warn("Unable to autoplay the About video.", error);
-          }
-        });
+        playAboutVideo();
       } else {
         aboutVideo.pause();
       }
@@ -1741,10 +1748,11 @@
     });
 
     aboutSoundToggle.addEventListener("click", () => {
+      aboutSoundChangedByVisitor = true;
       aboutSoundEnabled = !aboutSoundEnabled;
       updateAboutSoundControl();
       if (aboutVideoInView && document.visibilityState === "visible") {
-        updateAboutVideoPlayback();
+        playAboutVideo();
       }
     });
 
