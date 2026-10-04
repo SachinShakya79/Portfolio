@@ -1,0 +1,73 @@
+SHAHARA METAL CONCERN — EASY WEBSITE GUIDE
+
+FILES
+-----
+index.html        = entire website
+assets/           = put all photos, videos and logos here
+
+CHANGE THE LOGO
+---------------
+Open index.html and search for:
+
+<div class="logo-mark">SM</div>
+
+For an image logo, replace it with:
+
+<img class="logo-image" src="assets/logo.png" alt="Shahara Metal Concern">
+
+Then put logo.png inside the assets folder.
+
+ADD A PHOTO
+-----------
+Put the photo in assets/, for example:
+
+assets/gold-shield.jpg
+
+Then find MEDIA near the bottom of index.html and add:
+
+{
+  type: "image",
+  src: "assets/gold-shield.jpg",
+  title: "Gold Shield",
+  category: "awards"
+},
+
+ADD A VIDEO
+-----------
+Put the video in assets/, for example:
+
+assets/trophy-making.mp4
+
+Then add:
+
+{
+  type: "video",
+  src: "assets/trophy-making.mp4",
+  title: "Trophy Making",
+  category: "videos"
+},
+
+CATEGORIES
+----------
+awards
+plates
+frames
+videos
+
+The portfolio automatically creates the cards, filters and fullscreen viewer.
+
+RECOMMENDED FILE NAMES
+----------------------
+logo.png
+hero.jpg
+shield-01.jpg
+trophy-01.jpg
+name-plate-01.jpg
+making-trophy.mp4
+
+Avoid spaces and very long filenames.
+
+NO BUILD SYSTEM
+---------------
+There is no React, Tailwind, npm, or build step.
+Open index.html directly in a browser.
