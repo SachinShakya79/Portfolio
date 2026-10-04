@@ -1675,6 +1675,38 @@
     /* Let visitors enable video sound with a direct interaction. */
     const aboutVideo = document.getElementById("aboutVideo");
     const aboutSoundToggle = document.getElementById("aboutSoundToggle");
+    let aboutVideoInView = false;
+
+    function updateAboutVideoPlayback() {
+      if (aboutVideoInView && document.visibilityState === "visible") {
+        aboutVideo.play().catch(error => {
+          if (error.name !== "AbortError") {
+            console.warn("Unable to autoplay the About video.", error);
+          }
+        });
+      } else {
+        aboutVideo.pause();
+      }
+    }
+
+    if ("IntersectionObserver" in window) {
+      const aboutVideoObserver = new IntersectionObserver(([entry]) => {
+        aboutVideoInView = entry.isIntersecting;
+        updateAboutVideoPlayback();
+      }, { threshold: 0.1 });
+      aboutVideoObserver.observe(aboutVideo);
+    } else {
+      const updateAboutVideoVisibility = () => {
+        const bounds = aboutVideo.getBoundingClientRect();
+        aboutVideoInView = bounds.bottom > 0 && bounds.top < window.innerHeight;
+        updateAboutVideoPlayback();
+      };
+      window.addEventListener("scroll", updateAboutVideoVisibility, { passive: true });
+      window.addEventListener("resize", updateAboutVideoVisibility);
+      updateAboutVideoVisibility();
+    }
+
+    document.addEventListener("visibilitychange", updateAboutVideoPlayback);
 
     aboutSoundToggle.addEventListener("click", () => {
       const soundEnabled = aboutVideo.muted;
