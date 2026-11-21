@@ -464,6 +464,12 @@
           <polyline points="7 3 7 8 15 8"/>
         </svg>
       </button>
+      <button id="topWorkspaceModeBtn" class="pl-btn w-8 h-8 rounded-lg flex items-center justify-center text-sky-200 hover:bg-white/15" title="Workspace: Split view" aria-label="Toggle workspace view">
+        <svg id="topWorkspaceModeIcon" class="w-[18px] h-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="3" y="4" width="18" height="16" rx="2"/>
+          <line x1="12" y1="4" x2="12" y2="20"/>
+        </svg>
+      </button>
       <button id="topShareBtn" class="pl-btn w-8 h-8 rounded-lg flex items-center justify-center text-white hover:bg-white/15" title="Quick Export JPEG / PNG">
         <svg class="w-[18px] h-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/>
@@ -1142,6 +1148,7 @@
       layerVis: { ring: true, hole: true, cut: true, front: true, back: true },
       layerLock: { ring: false, hole: false, cut: false, front: false, back: false },
       previewMode: '3d',
+      workspaceMode: 'split',
       twoSided: false,
       doubleEtch: false,
       activeSide: 'front',
@@ -6216,7 +6223,7 @@
         epoxyDome: state.epoxyDome, twoSided: state.twoSided, doubleEtch: state.doubleEtch,
         activeSide: state.activeSide,
         plateRotX: state.plateRotX, plateRotY: state.plateRotY, plateRotZ: state.plateRotZ,
-        previewMode: state.previewMode,
+        previewMode: state.previewMode, workspaceMode: state.workspaceMode,
         cutTool: state.cutTool, cutShape: JSON.parse(JSON.stringify(state.cutShape)),
         hole: JSON.parse(JSON.stringify(state.hole)), ring: JSON.parse(JSON.stringify(state.ring)),
         layerOrder: [...state.layerOrder], layerVis: { ...state.layerVis }, layerLock: { ...state.layerLock },
@@ -6274,7 +6281,8 @@
         plateRotX: snap.plateRotX ?? -32,
         plateRotY: snap.plateRotY ?? 0,
         plateRotZ: snap.plateRotZ ?? 0,
-        previewMode: snap.previewMode === '2d' ? '2d' : '3d'
+        previewMode: snap.previewMode === '2d' ? '2d' : '3d',
+        workspaceMode: ['edit', 'preview', 'split'].includes(snap.workspaceMode) ? snap.workspaceMode : 'split'
       });
       if (snap.cutShape) state.cutShape = snap.cutShape;
       if (snap.cutTool) state.cutTool = snap.cutTool;
@@ -6297,6 +6305,7 @@
       syncSidebarForActiveSide();
       applyPlateRotation();
       setPreviewMode(state.previewMode);
+      setWorkspaceView(state.workspaceMode);
       setCutToolUI(state.cutTool);
       draw2d(); updateGeometryOnly(); scheduleTextureUpdate(true); renderActionStrip();
       renderQuickFinishSelector();
@@ -6547,6 +6556,8 @@
       if (hiding && canvas2dWrapper.classList.contains('hidden')) { showToast('Keep at least one viewport visible'); return; }
       viewport3d.classList.toggle('hidden', hiding);
       splitter.classList.toggle('hidden', hiding || canvas2dWrapper.classList.contains('hidden'));
+      state.workspaceMode = canvas2dWrapper.classList.contains('hidden') ? 'preview' : (hiding ? 'edit' : 'split');
+      updateWorkspaceModeButton();
       resizePreview(); resize2dCanvas(); updateWindowMenuChecks();
     });
     document.getElementById('winToggle2dBtn').addEventListener('click', () => {
@@ -6554,12 +6565,16 @@
       if (hiding && viewport3d.classList.contains('hidden')) { showToast('Keep at least one viewport visible'); return; }
       canvas2dWrapper.classList.toggle('hidden', hiding);
       splitter.classList.toggle('hidden', hiding || viewport3d.classList.contains('hidden'));
+      state.workspaceMode = viewport3d.classList.contains('hidden') ? 'edit' : (hiding ? 'preview' : 'split');
+      updateWorkspaceModeButton();
       resizePreview(); resize2dCanvas(); updateWindowMenuChecks();
     });
     function setWorkspaceView(mode) {
       const preview = document.getElementById('viewport3dContainer');
       const canvas = document.getElementById('canvas2dWrapper');
       const split = document.getElementById('workspaceSplitter');
+      if (!['edit', 'preview', 'split'].includes(mode)) mode = 'split';
+      state.workspaceMode = mode;
       if (mode === 'edit') {
         preview.classList.add('hidden');
         canvas.classList.remove('hidden');
@@ -6571,13 +6586,39 @@
         canvas.classList.remove('hidden');
       }
       split.classList.toggle('hidden', preview.classList.contains('hidden') || canvas.classList.contains('hidden'));
+      updateWorkspaceModeButton();
       resizePreview(); resize2dCanvas(); updateWindowMenuChecks();
       closeAllPopups();
       showToast(mode === 'edit' ? 'Edit-only workspace' : mode === 'preview' ? 'Preview-only workspace' : 'Split workspace restored');
     }
+    function updateWorkspaceModeButton() {
+      const btn = document.getElementById('topWorkspaceModeBtn');
+      const icon = document.getElementById('topWorkspaceModeIcon');
+      if (!btn || !icon) return;
+      const mode = state.workspaceMode || 'split';
+      const labels = {
+        edit: 'Edit only',
+        preview: 'Preview only',
+        split: 'Split view'
+      };
+      btn.title = `Workspace: ${labels[mode]} — tap to change`;
+      btn.setAttribute('aria-label', `${labels[mode]}, toggle workspace view`);
+      btn.classList.toggle('text-emerald-300', mode === 'edit');
+      btn.classList.toggle('text-sky-200', mode !== 'edit');
+      icon.innerHTML = mode === 'edit'
+        ? '<path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L8 18l-4 1 1-4z"/>'
+        : mode === 'preview'
+          ? '<path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>'
+          : '<rect x="3" y="4" width="18" height="16" rx="2"/><line x1="12" y1="4" x2="12" y2="20"/>';
+    }
+    document.getElementById('topWorkspaceModeBtn').addEventListener('click', () => {
+      const next = state.workspaceMode === 'split' ? 'edit' : state.workspaceMode === 'edit' ? 'preview' : 'split';
+      setWorkspaceView(next);
+    });
     document.getElementById('winEditOnlyBtn').addEventListener('click', () => setWorkspaceView('edit'));
     document.getElementById('winPreviewOnlyBtn').addEventListener('click', () => setWorkspaceView('preview'));
     document.getElementById('winSplitViewBtn').addEventListener('click', () => setWorkspaceView('split'));
+    updateWorkspaceModeButton();
     function updateFhToolsUI() {
       const activeTool = state.activeDesignTool || (state.canvas2dMode === 'paint' ? 'paint' : state.pathEditMode);
       document.querySelectorAll('.fh-tool-btn').forEach(b => {
@@ -6765,6 +6806,8 @@
       fhToolsPanel.classList.remove('hidden', 'mobile-tools-open');
       mobileToolsToggle.setAttribute('aria-expanded', 'false');
       viewport3d.style.width = ''; viewport3d.style.flexBasis = ''; viewport3d.style.height = '';
+      state.workspaceMode = 'split';
+      updateWorkspaceModeButton();
       state.zoom2d = 1.0; state.pan2dX = 0; state.pan2dY = 0; syncZoom2DLabel();
       reset3DCameraView();
       syncSplitterValue();
