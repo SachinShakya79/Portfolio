@@ -1239,6 +1239,7 @@
       pan2dX: 0,
       pan2dY: 0,
       pan2dActive: false,
+      guidesPaused: false,
       isPanning2d: false,
       isFullscreen: false
     };
@@ -2344,10 +2345,10 @@
       (side.paintLayers || [{ visible: true, canvas: side.paintCanvas }]).forEach(pl => {
         if (pl.visible !== false && pl.canvas) ctx2d.drawImage(pl.canvas, dx, dy, dw, dh);
       });
-      drawDesignObjects(ctx2d, dx, dy, dw, dh, side, true);
+      drawDesignObjects(ctx2d, dx, dy, dw, dh, side, !state.guidesPaused && !isPanningActive2D());
       ctx2d.restore();
 
-      if (!(getActiveCutShape().type === 'poly' && state.isDrawingCut)) {
+      if (state.canvas2dMode === 'cut' && !state.guidesPaused && !isPanningActive2D() && !(getActiveCutShape().type === 'poly' && state.isDrawingCut)) {
         ctx2d.save();
         ctx2d.fillStyle = 'rgba(11, 13, 16, 0.55)';
         ctx2d.beginPath();
@@ -2358,7 +2359,7 @@
       }
 
       // PixelLab Alignment Grid Overlay
-      if (state.showGrid) {
+      if (state.showGrid && !state.guidesPaused && !isPanningActive2D()) {
         ctx2d.save();
         ctx2d.strokeStyle = 'rgba(56, 189, 248, 0.35)';
         ctx2d.lineWidth = 1;
@@ -2376,7 +2377,7 @@
         ctx2d.restore();
       }
 
-      getAllCutShapes().forEach(item => {
+      if (state.canvas2dMode === 'cut' && !state.guidesPaused && !isPanningActive2D()) getAllCutShapes().forEach(item => {
         const isAct = item.idx === state.activeCutIndex;
         ctx2d.save();
         ctx2d.strokeStyle = state.lockedCut ? '#94a3b8' : (isAct ? '#f59e0b' : '#38bdf8');
@@ -2387,7 +2388,7 @@
         ctx2d.stroke();
         ctx2d.restore();
       });
-      if (state.isDrawingCut && getActiveCutShape().type === 'poly' && getActiveCutShape().points.length >= 2) {
+      if (!state.guidesPaused && !isPanningActive2D() && state.isDrawingCut && getActiveCutShape().type === 'poly' && getActiveCutShape().points.length >= 2) {
         ctx2d.save();
         ctx2d.strokeStyle = '#f59e0b';
         ctx2d.lineWidth = 2.2;
@@ -2398,7 +2399,7 @@
         ctx2d.restore();
       }
 
-      if (state.hole.enabled && state.layerVis.hole) {
+      if (state.hole.enabled && state.layerVis.hole && !state.guidesPaused && !isPanningActive2D()) {
         const hx = box.x + state.hole.x * box.w;
         const hy = box.y + state.hole.y * box.h;
         const hr = Math.max(6, state.hole.r * Math.min(box.w, box.h));
@@ -2413,7 +2414,7 @@
         ctx2d.restore();
       }
 
-      if (state.ring.enabled && state.layerVis.ring) {
+      if (state.ring.enabled && state.layerVis.ring && !state.guidesPaused && !isPanningActive2D()) {
         const rx = box.x + state.ring.x * box.w;
         const ry = box.y + state.ring.y * box.h;
         const rr = Math.max(11, state.ring.r * Math.min(box.w, box.h));
@@ -2444,7 +2445,7 @@
         ctx2d.restore();
       }
 
-      if (hoveredEdge && !hoveredHandle && state.canvas2dMode === 'cut' && !isPanningActive2D()) {
+      if (hoveredEdge && !hoveredHandle && state.canvas2dMode === 'cut' && !isPanningActive2D() && !state.guidesPaused) {
         ctx2d.save();
         ctx2d.beginPath();
         ctx2d.arc(hoveredEdge.x, hoveredEdge.y, 6, 0, Math.PI * 2);
@@ -2456,9 +2457,10 @@
         ctx2d.restore();
       }
 
-      getHandles2D(box).forEach(h => {
+      if (state.canvas2dMode === 'cut' && !isPanningActive2D() && !state.guidesPaused && !state.lockedCut) getHandles2D(box).forEach(h => {
         const isHot = (state.dragHandle && state.dragHandle.kind === h.kind && state.dragHandle.idx === h.idx) ||
                       (hoveredHandle && hoveredHandle.kind === h.kind && hoveredHandle.idx === h.idx);
+        if (!isHot && !state.dragHandle) return;
         if (isHot) {
           ctx2d.beginPath();
           ctx2d.arc(h.x, h.y, 11, 0, Math.PI * 2);
@@ -2473,7 +2475,7 @@
         ctx2d.lineWidth = isHot ? 2.2 : 1.6;
         ctx2d.stroke();
       });
-      if (state.canvas2dMode === 'cut' && getActiveCutShape().type === 'poly' && !state.lockedCut) {
+      if (state.canvas2dMode === 'cut' && getActiveCutShape().type === 'poly' && !state.lockedCut && !state.guidesPaused && !isPanningActive2D()) {
         const pts = getActiveCutShape().points;
         // Live Pen rubber-band preview while drawing
         if (state.isDrawingCut && pts.length >= 1 && state.penPreviewPt) {
@@ -2684,6 +2686,17 @@
       document.getElementById('zoom2dTopVal').textContent = txt;
     }
 
+    let guidesResumeTimer = null;
+    function pauseEditorGuides(duration = 260) {
+      state.guidesPaused = true;
+      clearTimeout(guidesResumeTimer);
+      guidesResumeTimer = setTimeout(() => {
+        state.guidesPaused = false;
+        draw2d();
+      }, duration);
+      draw2d();
+    }
+
     canvas2d.addEventListener('wheel', (e) => {
       e.preventDefault();
       const factor = e.deltaY < 0 ? 1.12 : 0.89;
@@ -2696,6 +2709,7 @@
       state.pan2dY = my - (my - state.pan2dY) * ratio;
       state.zoom2d = nextZoom;
       syncZoom2DLabel();
+      pauseEditorGuides(280);
       draw2d();
     }, { passive: false });
 
@@ -3243,12 +3257,14 @@
       if (ptrs2d.size === 2) {
         const pts = [...ptrs2d.values()];
         pinch2dDist = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
+        state.guidesPaused = true;
         state.isDrawingCut = false; state.isPainting = false; state.dragHandle = null;
         return;
       }
 
       if (isPanningActive2D() || e.button === 1) {
         state.isPanning2d = true;
+        state.guidesPaused = true;
         panLast = { x: e.clientX, y: e.clientY };
         update2dCursor();
         return;
@@ -3766,7 +3782,8 @@
     function release2dPointer(e) {
       ptrs2d.delete(e.pointerId);
       if (ptrs2d.size < 2) pinch2dDist = null;
-      if (state.isPanning2d) { state.isPanning2d = false; panLast = null; update2dCursor(); return; }
+      if (ptrs2d.size === 0 && state.guidesPaused) pauseEditorGuides(180);
+      if (state.isPanning2d) { state.isPanning2d = false; panLast = null; pauseEditorGuides(220); update2dCursor(); return; }
       if (state.isPainting) { state.isPainting = false; scheduleTextureUpdate(true, state.activeSide); return; }
       if (state.dragHandle) {
         const wasDesign = ['design-create', 'design-move', 'design-resize', 'design-pen-handle', 'dp-anchor', 'dp-handle', 'dp-seg'].includes(state.dragHandle.kind);
@@ -6968,13 +6985,13 @@
     });
     document.getElementById('finishCutPathBtn').addEventListener('click', finishActiveCutPath);
     document.getElementById('zoom2dInBtn').addEventListener('click', () => {
-      state.zoom2d = Math.min(6.0, state.zoom2d * 1.25); syncZoom2DLabel(); draw2d();
+      state.zoom2d = Math.min(6.0, state.zoom2d * 1.25); syncZoom2DLabel(); pauseEditorGuides(280);
     });
     document.getElementById('zoom2dOutBtn').addEventListener('click', () => {
-      state.zoom2d = Math.max(0.6, state.zoom2d * 0.8); syncZoom2DLabel(); draw2d();
+      state.zoom2d = Math.max(0.6, state.zoom2d * 0.8); syncZoom2DLabel(); pauseEditorGuides(280);
     });
     document.getElementById('zoom2dLabel').addEventListener('click', () => {
-      state.zoom2d = 1.0; state.pan2dX = 0; state.pan2dY = 0; syncZoom2DLabel(); draw2d();
+      state.zoom2d = 1.0; state.pan2dX = 0; state.pan2dY = 0; syncZoom2DLabel(); state.guidesPaused = false; draw2d();
     });
 
     function setCutToolUI(tool) {
@@ -7253,6 +7270,11 @@
       state.pan2dActive = active;
       state.isPanning2d = false;
       panLast = null;
+      if (active) {
+        state.guidesPaused = true;
+      } else {
+        pauseEditorGuides(180);
+      }
       sync2DPanControls();
       update2dCursor();
       draw2d();
