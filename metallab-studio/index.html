@@ -2332,6 +2332,7 @@
       ctx2d.globalCompositeOperation = 'source-over';
       ctx2d.restore();
       ctx2d.setTransform(canvas2dDpr, 0, 0, canvas2dDpr, 0, 0);
+      ctx2d.save();
       ctx2d.beginPath();
       ctx2d.rect(0, 0, canvas2dCssW, canvas2dCssH);
       ctx2d.clip();
@@ -2341,6 +2342,7 @@
         ctx2d.font = '12px Inter, sans-serif';
         ctx2d.textAlign = 'center';
         ctx2d.fillText(`No ${state.activeSide} design uploaded — tap + to Upload`, canvas2dCssW / 2, canvas2dCssH / 2);
+        ctx2d.restore();
         return;
       }
 
@@ -2561,6 +2563,8 @@
           }
         });
       }
+      ctx2d.restore();
+      ctx2d.restore();
     }
 
     function getCanvas2DPointer(e) {
