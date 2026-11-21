@@ -1892,8 +1892,8 @@
       const scale = Math.min(availW / aw, availH / ah) * state.zoom2d;
       const w = aw * scale;
       const h = ah * scale;
-      const maxPanX = Math.max(40, w * 0.5 + canvas2dCssW * 0.25);
-      const maxPanY = Math.max(40, h * 0.5 + canvas2dCssH * 0.25);
+      const maxPanX = Math.max(0, (w - canvas2dCssW * 0.18) * 0.5);
+      const maxPanY = Math.max(0, (h - canvas2dCssH * 0.18) * 0.5);
       state.pan2dX = Math.max(-maxPanX, Math.min(maxPanX, state.pan2dX));
       state.pan2dY = Math.max(-maxPanY, Math.min(maxPanY, state.pan2dY));
       const x = (canvas2dCssW - w) / 2 + state.pan2dX;
