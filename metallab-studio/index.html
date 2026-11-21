@@ -421,6 +421,26 @@
       .action-chip { min-width: 84px; height: 64px; }
     }
     button, input, select { touch-action: manipulation; }
+    @media (min-width: 1100px) and (pointer: fine) {
+      main.workspace-preview-only #viewport3dContainer {
+        flex: 1 1 100% !important;
+        width: 100% !important;
+        max-width: 100% !important;
+      }
+      main.workspace-preview-only #canvas2dWrapper,
+      main.workspace-preview-only #workspaceSplitter {
+        display: none !important;
+      }
+      main.workspace-edit-only #canvas2dWrapper {
+        flex: 1 1 100% !important;
+        width: 100% !important;
+        max-width: 100% !important;
+      }
+      main.workspace-edit-only #viewport3dContainer,
+      main.workspace-edit-only #workspaceSplitter {
+        display: none !important;
+      }
+    }
     @media (max-width: 1099px) {
       #workspaceSplitter { cursor: row-resize; height: 14px; }
       #fileMenu, #windowMenu { max-width: calc(100vw - 20px); left: 10px !important; }
@@ -2306,7 +2326,10 @@
     function draw2d() {
       ctx2d.save();
       ctx2d.setTransform(1, 0, 0, 1, 0, 0);
-      ctx2d.clearRect(0, 0, canvas2d.width, canvas2d.height);
+      ctx2d.globalCompositeOperation = 'copy';
+      ctx2d.fillStyle = 'rgba(0, 0, 0, 0)';
+      ctx2d.fillRect(0, 0, canvas2d.width, canvas2d.height);
+      ctx2d.globalCompositeOperation = 'source-over';
       ctx2d.restore();
       ctx2d.setTransform(canvas2dDpr, 0, 0, canvas2dDpr, 0, 0);
       ctx2d.beginPath();
@@ -3513,7 +3536,7 @@
       if (state.lockedCut) { showToast('Cut line is locked (unlock in Layers)'); return; }
 
       if (e.button === 2) {
-        state.isPanning2d = true; panLast = { x: e.clientX, y: e.clientY }; update2dCursor(); return;
+        state.isPanning2d = true; state.guidesPaused = true; panLast = { x: e.clientX, y: e.clientY }; update2dCursor(); return;
       }
 
       // In polygon drawing mode (started via New Poly), add points on tap
@@ -3537,6 +3560,7 @@
       // Otherwise, touching/dragging anywhere away from handles smoothly PANS the 2D workspace
       // instead of accidentally wiping out the existing cut line!
       state.isPanning2d = true;
+      state.guidesPaused = true;
       panLast = { x: e.clientX, y: e.clientY };
       update2dCursor();
     });
@@ -3551,17 +3575,18 @@
         if (pinch2dDist !== null) {
           state.zoom2d = Math.max(0.5, Math.min(6.0, state.zoom2d * (dist / pinch2dDist)));
           syncZoom2DLabel();
-          draw2d();
+          scheduleDraw2d();
         }
         pinch2dDist = dist;
         return;
       }
 
       if (state.isPanning2d && panLast) {
+        state.guidesPaused = true;
         state.pan2dX += e.clientX - panLast.x;
         state.pan2dY += e.clientY - panLast.y;
         panLast = { x: e.clientX, y: e.clientY };
-        draw2d();
+        scheduleDraw2d();
         return;
       }
 
@@ -6592,6 +6617,9 @@
       document.getElementById('winChkPreview').textContent = viewport3d.classList.contains('hidden') ? '' : '✓';
       document.getElementById('winChk2d').textContent = canvas2dWrapper.classList.contains('hidden') ? '' : '✓';
       const finishPanel = document.getElementById('quickFinishPanel');
+      const mainEl = viewport3d.closest('main');
+      mainEl?.classList.remove('workspace-edit-only', 'workspace-preview-only');
+      mainEl?.classList.add('workspace-split');
       document.getElementById('winChkQuickFinish').textContent = (mobile ? !finishPanel.classList.contains('mobile-finish-open') : finishPanel.classList.contains('hidden')) ? '' : '✓';
       document.getElementById('winChkZoomBar').textContent = document.getElementById('zoom2dFloatingBar').classList.contains('hidden') ? '' : '✓';
       document.getElementById('winChkGrid').textContent = state.showGrid ? '✓' : '';
@@ -6618,17 +6646,34 @@
       const preview = document.getElementById('viewport3dContainer');
       const canvas = document.getElementById('canvas2dWrapper');
       const split = document.getElementById('workspaceSplitter');
+      const mainEl = preview?.closest('main');
       if (!['edit', 'preview', 'split'].includes(mode)) mode = 'split';
       state.workspaceMode = mode;
+      mainEl?.classList.toggle('workspace-edit-only', mode === 'edit');
+      mainEl?.classList.toggle('workspace-preview-only', mode === 'preview');
+      mainEl?.classList.remove('workspace-split');
+      if (mode === 'split') mainEl?.classList.add('workspace-split');
       if (mode === 'edit') {
         preview.classList.add('hidden');
         canvas.classList.remove('hidden');
+        preview.style.width = '';
+        preview.style.flex = '';
+        canvas.style.width = '100%';
+        canvas.style.flex = '1 1 100%';
       } else if (mode === 'preview') {
         canvas.classList.add('hidden');
         preview.classList.remove('hidden');
+        canvas.style.width = '';
+        canvas.style.flex = '';
+        preview.style.width = '100%';
+        preview.style.flex = '1 1 100%';
       } else {
         preview.classList.remove('hidden');
         canvas.classList.remove('hidden');
+        preview.style.width = '';
+        preview.style.flex = '';
+        canvas.style.width = '';
+        canvas.style.flex = '';
       }
       split.classList.toggle('hidden', preview.classList.contains('hidden') || canvas.classList.contains('hidden'));
       updateWorkspaceModeButton();
@@ -6868,6 +6913,9 @@
       fhToolsPanel.classList.remove('hidden', 'mobile-tools-open');
       mobileToolsToggle.setAttribute('aria-expanded', 'false');
       viewport3d.style.width = ''; viewport3d.style.flexBasis = ''; viewport3d.style.height = '';
+      viewport3d.style.flex = '';
+      canvas2dWrapper.style.width = '';
+      canvas2dWrapper.style.flex = '';
       state.workspaceMode = 'split';
       updateWorkspaceModeButton();
       state.zoom2d = 1.0; state.pan2dX = 0; state.pan2dY = 0; syncZoom2DLabel();
